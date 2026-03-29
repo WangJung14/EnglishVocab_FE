@@ -147,6 +147,10 @@ function DashboardHeader({ user }: { user: UserData }) {
           <Link href="/flashcards" className="transition-colors hover:text-sky-500 pt-px">
             Thẻ ôn (Flashcards)
           </Link>
+          <Link href="/exercises/mock-lesson-4" className="transition-colors hover:text-sky-500 pt-px flex items-center gap-1">
+            <Zap size={14} className="fill-amber-400 text-amber-500" />
+            Đề thi (Quiz Test)
+          </Link>
         </nav>
 
         {/* Right: Avatar Dropdown */}
@@ -204,8 +208,8 @@ function StreakDisplay({ streakCount = 0 }: { streakCount?: number }) {
     <Badge
       variant="outline"
       className={`px-3 py-1.5 text-sm font-bold border-2 transition-colors flex items-center gap-1.5 ${isZero
-          ? 'text-muted-foreground border-muted-foreground/30 bg-muted/40'
-          : 'text-amber-600 border-amber-200 bg-amber-50 dark:text-amber-500 dark:border-amber-500/30 dark:bg-amber-500/10'
+        ? 'text-muted-foreground border-muted-foreground/30 bg-muted/40'
+        : 'text-amber-600 border-amber-200 bg-amber-50 dark:text-amber-500 dark:border-amber-500/30 dark:bg-amber-500/10'
         }`}
     >
       <Flame size={16} className={isZero ? 'opacity-50' : 'fill-amber-500'} />
@@ -340,8 +344,8 @@ function SRSQuickCard({ dueCount = 0 }: { dueCount: number }) {
 
           <Button
             className={`w-full font-black rounded-2xl h-12 transition-all gap-2 ${isZero
-                ? 'bg-muted text-muted-foreground'
-                : 'bg-amber-500 hover:bg-amber-400 text-white shadow-[0_4px_0_0_#d97706] hover:shadow-[0_2px_0_0_#d97706] hover:translate-y-[2px] active:shadow-[0_0px_0_0_#d97706] active:translate-y-[4px]'
+              ? 'bg-muted text-muted-foreground'
+              : 'bg-amber-500 hover:bg-amber-400 text-white shadow-[0_4px_0_0_#d97706] hover:shadow-[0_2px_0_0_#d97706] hover:translate-y-[2px] active:shadow-[0_0px_0_0_#d97706] active:translate-y-[4px]'
               }`}
             disabled={isZero}
             asChild={!isZero}
@@ -448,9 +452,9 @@ export default async function DashboardPage() {
 
     // Phân rã dữ liệu an toàn, nếu Backend trả mảng lỗi/rỗng -> fallback thẳng vào MockData
     const user: UserData = unwrap(userReq, mockUser);
-    
+
     const stats: StatsData = unwrap(statsReq, mockStats);
-    
+
     // progress list: mảng bài học
     let progressList: LessonData[] = unwrap(progressReq, []);
 
@@ -458,7 +462,7 @@ export default async function DashboardPage() {
     if (progressList.length === 0) {
       progressList = mockProgress;
     }
-    
+
     const srsStats: SRSData = unwrap(srsReq, mockSrs);
 
     // Xác định bài học IN_PROGRESS đầu tiên để đưa lên Banner "Tiếp tục học"

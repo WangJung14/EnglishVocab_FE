@@ -168,3 +168,106 @@ export const getMockTopicLessons = (topicSlug: string): LessonListData[] => [
   { id: 'mock-lesson-4', title: 'Lesson 4: Practice Test', slug: 'mock-lesson-4', content: 'Bài kiểm tra tổng hợp', lessonType: 'PRACTICE', isPublished: true },
 ];
 
+// ---------------------------------------------------------
+// EXERCISES / QUIZ MOCKS
+// ---------------------------------------------------------
+
+export interface ExerciseMeta {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  displayOrder: number;
+}
+
+export interface QuestionOption {
+  id: string;
+  content: string;
+  isCorrect: boolean;
+}
+
+export interface QuestionData {
+  id: string;
+  content: string;
+  type: string;
+  options: QuestionOption[];
+}
+
+export interface AttemptStartRes {
+  attemptId: string;
+  startTime: string;
+}
+
+export interface AttemptResult {
+  id: string;
+  score: number;
+  maxScore: number;
+  isPassed: boolean;
+  status: string;
+  startedAt: string;
+  submittedAt: string;
+  totalQuestions: number;
+  correctAnswers: number;
+}
+
+export const getMockExerciseMeta = (id: string): ExerciseMeta => ({
+  id: id,
+  title: 'Quiz Test: Present Simple Tense',
+  description: 'Kiểm tra kiến thức đã học ở bài Thì Hiện Tại Đơn với 3 câu hỏi nhanh.',
+  type: 'QUIZ',
+  displayOrder: 1,
+});
+
+export const getMockExerciseQuestions = (id: string): QuestionData[] => [
+  {
+    id: 'q1',
+    content: 'Which sentence is grammatically correct?',
+    type: 'MULTIPLE_CHOICE',
+    options: [
+      { id: 'opt1_1', content: 'She go to school every day.', isCorrect: false },
+      { id: 'opt1_2', content: 'She goes to school every day.', isCorrect: true },
+      { id: 'opt1_3', content: 'She going to school every day.', isCorrect: false },
+      { id: 'opt1_4', content: 'She is go to school every day.', isCorrect: false },
+    ]
+  },
+  {
+    id: 'q2',
+    content: 'What time _____ you usually wake up?',
+    type: 'MULTIPLE_CHOICE',
+    options: [
+      { id: 'opt2_1', content: 'does', isCorrect: false },
+      { id: 'opt2_2', content: 'do', isCorrect: true },
+      { id: 'opt2_3', content: 'are', isCorrect: false },
+      { id: 'opt2_4', content: 'is', isCorrect: false },
+    ]
+  },
+  {
+    id: 'q3',
+    content: 'They _____ playing soccer.',
+    type: 'MULTIPLE_CHOICE',
+    options: [
+      { id: 'opt3_1', content: 'not like', isCorrect: false },
+      { id: 'opt3_2', content: 'don\'t like', isCorrect: true },
+      { id: 'opt3_3', content: 'doesn\'t like', isCorrect: false },
+      { id: 'opt3_4', content: 'aren\'t like', isCorrect: false },
+    ]
+  }
+];
+
+export const mockAttemptStart = (): AttemptStartRes => ({
+  attemptId: 'mock-attempt-xyz-123',
+  startTime: new Date().toISOString()
+});
+
+export const getMockAttemptResult = (score: number, total: number): AttemptResult => ({
+  id: 'mock-attempt-xyz-123',
+  score: parseFloat(((score / total) * 10).toFixed(1)),
+  maxScore: 10,
+  isPassed: score / total >= 0.5,
+  status: 'COMPLETED',
+  startedAt: new Date(Date.now() - 300000).toISOString(),
+  submittedAt: new Date().toISOString(),
+  totalQuestions: total,
+  correctAnswers: score
+});
+
