@@ -40,6 +40,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { mockUser, mockStats, mockProgress, mockSrs } from '@/lib/mockData';
+
 const API_BASE = 'http://localhost:8080/api/v1';
 
 // ==========================================
@@ -441,24 +443,23 @@ export default async function DashboardPage() {
     if (userReq.status === 'rejected') {
       throw new Error(userReq.reason?.message || 'Phiên đăng nhập hết hạn hoặc Server không phản hồi!');
     }
-
     const unwrap = (res: PromiseSettledResult<any>, fallback: any) =>
       res.status === 'fulfilled' ? res.value : fallback;
 
-    // Phân rã dữ liệu an toàn
-    const user: UserData = userReq.value;
+    // Phân rã dữ liệu an toàn, nếu Backend trả mảng lỗi/rỗng -> fallback thẳng vào MockData
+    const user: UserData = unwrap(userReq, mockUser);
+    
+    const stats: StatsData = unwrap(statsReq, mockStats);
+    
+    // progress list: mảng bài học
+    let progressList: LessonData[] = unwrap(progressReq, []);
 
-    const stats: StatsData = unwrap(statsReq, {
-      totalLessonsStarted: 0,
-      totalLessonsCompleted: 0,
-      completionRate: 0,
-      averageScore: 0,
-      totalWordsLearned: 0,
-      reviewCount: 0
-    });
-
-    const progressList: LessonData[] = unwrap(progressReq, []);
-    const srsStats: SRSData = unwrap(srsReq, { dueToday: 0 });
+    // Tự động fake dữ liệu nếu backend trả về rỗng
+    if (progressList.length === 0) {
+      progressList = mockProgress;
+    }
+    
+    const srsStats: SRSData = unwrap(srsReq, mockSrs);
 
     // Xác định bài học IN_PROGRESS đầu tiên để đưa lên Banner "Tiếp tục học"
     const inProgressLesson = progressList.find(p => p.status === 'IN_PROGRESS') || progressList[0] || null;

@@ -1,0 +1,116 @@
+import { UserData, StatsData, LessonData, SRSData } from '@/app/(dashboard)/dashboard/page';
+import { LessonDetail, WordItem, ReadingItem } from '@/app/(dashboard)/lessons/[slug]/page';
+
+// ---------------------------------------------------------
+// DASHBOARD MOCKS
+// ---------------------------------------------------------
+
+export const mockUser: UserData = {
+  id: 'user-id-123',
+  email: 'learner@example.com',
+  firstName: 'Tuấn',
+  lastName: 'Anh',
+  avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
+  role: 'STUDENT',
+  membershipType: 'PREMIUM'
+};
+
+export const mockStats: StatsData = {
+  totalLessonsStarted: 12,
+  totalLessonsCompleted: 8,
+  completionRate: 75.5,
+  averageScore: 92.4,
+  totalWordsLearned: 1540,
+  reviewCount: 320
+};
+
+export const mockProgress: LessonData[] = [
+  {
+    id: 'mock-lesson-1',
+    title: 'Bài 1: Present Simple Tense (Thì hiện tại đơn)',
+    status: 'IN_PROGRESS',
+    progress: 45,
+    totalItems: 20,
+    completedItems: 9,
+    lastAccessedAt: new Date().toISOString()
+  },
+  {
+    id: 'mock-lesson-2',
+    title: 'Bài 2: Family Vocabulary (Từ vựng Gia đình)',
+    status: 'COMPLETED',
+    progress: 100,
+    totalItems: 15,
+    completedItems: 15,
+    completedAt: new Date(Date.now() - 86400000).toISOString() // 1 ngày trước
+  },
+  {
+    id: 'mock-lesson-3',
+    title: 'Bài 3: Daily Routine (Thói quen hàng ngày)',
+    status: 'COMPLETED',
+    progress: 100,
+    totalItems: 25,
+    completedItems: 25,
+    completedAt: new Date(Date.now() - 172800000).toISOString() // 2 ngày trước
+  }
+];
+
+export const mockSrs: SRSData = {
+  dueToday: 42,
+  totalCardsActive: 1540,
+  retentionRate: 88.5
+};
+
+
+// ---------------------------------------------------------
+// LESSON DETAIL MOCKS
+// ---------------------------------------------------------
+
+export const getMockLessonDetail = (slug: string): LessonDetail => {
+  return {
+    id: slug.startsWith('mock-lesson-') ? slug : 'mock-lesson-1', // Cố tình map id bằng url slug giả mạo
+    title: slug === 'mock-lesson-2' ? 'Bài 2: Family Vocabulary (Từ vựng Gia đình)' : 'Bài 1: Present Simple Tense (Thì hiện tại đơn)',
+    slug: slug,
+    content: 'Hôm nay chúng ta sẽ khám phá mọi chi tiết về cách sử dụng ngữ pháp Thì hiện tại đơn và áp dụng nó thông qua 20 từ vựng cốt lõi.',
+    lessonType: 'VOCABULARY',
+    isPublished: true
+  };
+};
+
+export const getMockWords = (lessonId: string): WordItem[] => {
+  if (lessonId === 'mock-lesson-2') {
+    return [
+      { id: 'w1', word: 'Father', meaning: 'Bố, cha (Danh từ)', displayOrder: 1 },
+      { id: 'w2', word: 'Mother', meaning: 'Mẹ, má (Danh từ)', displayOrder: 2 },
+      { id: 'w3', word: 'Sibling', meaning: 'Anh chị em ruột', displayOrder: 3 },
+      { id: 'w4', word: 'Parent', meaning: 'Phụ huynh', displayOrder: 4 },
+    ];
+  }
+  
+  return [
+    { id: '1', word: 'Always', meaning: 'Luôn luôn (Trạng từ chỉ tần suất)', displayOrder: 1 },
+    { id: '2', word: 'Usually', meaning: 'Thường xuyên', displayOrder: 2 },
+    { id: '3', word: 'Often', meaning: 'Thường thường', displayOrder: 3 },
+    { id: '4', word: 'Sometimes', meaning: 'Thỉnh thoảng', displayOrder: 4 },
+    { id: '5', word: 'Seldom', meaning: 'Hiếm khi', displayOrder: 5 },
+    { id: '6', word: 'Never', meaning: 'Không bao giờ', displayOrder: 6 },
+    { id: '7', word: 'Every day', meaning: 'Mỗi ngày', displayOrder: 7 },
+    { id: '8', word: 'Routine', meaning: 'Thói quen, lịch trình (Danh từ)', displayOrder: 8 },
+  ];
+};
+
+export const getMockReading = (lessonId: string): ReadingItem => {
+  return {
+    id: `reading-${lessonId}`,
+    title: 'A Day in the Life of a Student',
+    content: `I usually wake up at 6:00 AM every morning. After making my bed, I always brush my teeth and wash my face.
+    
+Then, I often go to the kitchen to prepare breakfast for my family. We sometimes eat eggs and bread. I never drink coffee because it makes me dizzy.
+
+At 7:30 AM, I take the bus to school. My classes start at 8:00 AM and end at exactly 12:00 PM. I really enjoy my routine.`,
+    translation: `Tôi thường thức dậy lúc 6 giờ sáng mỗi ngày. Sau khi dọn dẹp giường, tôi luôn đánh răng và rửa mặt.
+
+Sau đó, tôi thường vào bếp cẩn thận chuẩn bị bữa sáng cho gia đình. Thi thoảng chúng tôi ăn trứng và bánh mì. Tôi không bao giờ uống cà phê vì nó khiến tôi bị chóng mặt.
+
+Lúc 7:30 sáng, tôi bắt xe buýt đến trường. Các lớp học của tôi bắt đầu lúc 8:00 sáng và kết thúc chuẩn xác vào lúc 12:00 trưa. Tôi thực sự yêu thích lịch trình thói quen này của mình.`
+  };
+};
