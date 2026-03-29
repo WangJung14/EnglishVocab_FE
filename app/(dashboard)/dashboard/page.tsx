@@ -1,45 +1,100 @@
 import React from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { 
-  Flame, 
-  BookOpen, 
-  Trophy, 
-  Zap, 
+import {
+  Flame,
+  BookOpen,
+  Trophy,
+  Zap,
   ArrowRight,
   Brain,
   Star,
   CheckCircle2,
+  AlertCircle,
+  PlayCircle,
   Clock,
-  AlertCircle 
+  User,
+  Settings,
+  LogOut,
+  GraduationCap
 } from 'lucide-react';
 
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter
+} from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const API_BASE = 'http://localhost:8080/api/v1';
 
 // ==========================================
-// THÀNH PHẦN HELPER & API FETCH
+// 1. DATA INTERFACES
 // ==========================================
 
-// Lấy token từ cookies đính kèm vào req để Server Component có thể xác thực
+export interface UserData {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  role: 'STUDENT' | 'TEACHER' | 'ADMIN';
+  membershipType: 'FREE' | 'PREMIUM';
+}
+
+export interface StatsData {
+  totalLessonsStarted: number;
+  totalLessonsCompleted: number;
+  completionRate: number;
+  averageScore: number;
+  totalWordsLearned: number;
+  reviewCount: number;
+}
+
+export interface LessonData {
+  id: string;
+  title: string;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'NOT_STARTED';
+  progress: number;
+  totalItems: number;
+  completedItems: number;
+  completedAt?: string;
+  lastAccessedAt?: string;
+}
+
+export interface SRSData {
+  dueToday: number;
+  totalCardsActive: number;
+  retentionRate: number;
+}
+
+// ==========================================
+// 2. HELPER FUNCTIONS
+// ==========================================
 async function getToken() {
   const cookieStore = await cookies();
-  // Ở đây bắt buộc ứng dụng phải lưu token vào cookie thay vì localStorage để Next.js SSR đọc được
   return cookieStore.get('accessToken')?.value || '';
 }
 
-// Hàm fetch data chuẩn hóa xử lý lỗi đồng bộ với backend
 async function serverFetch(endpoint: string) {
   const token = await getToken();
-  
+
   if (!token) {
-    throw new Error('Không tìm thấy token đăng nhập. Vui lòng đăng nhập lại (cần lưu accessToken vào Cookie thay vì localStorage).');
+    throw new Error('Token không hợp lệ. Vui lòng đăng nhập lại hệ thống bằng Cookie.');
   }
 
   const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -47,74 +102,140 @@ async function serverFetch(endpoint: string) {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    // Server fetch của Next 15 mặc định có thể cache được. Nhưng đối với Dashboard data thường xuyên thay đổi ta dùng cache: 'no-store'
-    cache: 'no-store'
+    // Dữ liệu cá nhân Dashboard tái lấy mới liên tục hoặc cache ngắn (Ví dụ: revalidate 60 giây như yêu cầu)
+    next: { revalidate: 60 }
   });
 
   const data = await res.json();
-  
+
   if (data.code !== 1000) {
-    throw new Error(data.message || `Lỗi khi lấy dữ liệu: ${endpoint}`);
+    throw new Error(data.message || `Lỗi từ Server khi gọi ${endpoint}`);
   }
-  
+
   return data.result;
 }
 
 // ==========================================
-// CÁC COMPONENT XÂY DỰNG GIAO DIỆN CON
+// 3. UI COMPONENTS NỘI BỘ
 // ==========================================
+
+function DashboardHeader({ user }: { user: UserData }) {
+  return (
+    <header className="sticky top-0 z-50 w-full mb-8 bg-background/80 backdrop-blur-md border-b border-border/50">
+      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+
+        {/* Left: Logo */}
+        <div className="flex items-center gap-2">
+          <div className="bg-sky-500 rounded-lg p-1.5 flex items-center justify-center shadow-md shadow-sky-500/20">
+            <GraduationCap className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-xl font-black tracking-tight text-foreground hidden sm:inline-block">
+            English<span className="text-sky-500">Hub</span>
+          </span>
+        </div>
+
+        {/* Center: Demos Navigation */}
+        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
+          <Link href="/dashboard" className="text-foreground transition-colors hover:text-sky-500 font-bold">
+            Dashboard
+          </Link>
+          <Link href="/courses" className="transition-colors hover:text-sky-500 pt-px">
+            Khóa học (Courses)
+          </Link>
+          <Link href="/flashcards" className="transition-colors hover:text-sky-500 pt-px">
+            Thẻ ôn (Flashcards)
+          </Link>
+        </nav>
+
+        {/* Right: Avatar Dropdown */}
+        <div className="flex items-center gap-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full border border-sky-100 hover:bg-sky-50 p-0 focus-visible:ring-0">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={user.avatarUrl || ''} alt="User Avatar" />
+                  <AvatarFallback className="bg-sky-100 text-sky-700 font-bold">
+                    {user.firstName?.charAt(0) || ''}{user.lastName?.charAt(0) || ''}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user.firstName} {user.lastName}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href="/profile">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Hồ sơ cá nhân</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href="/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Cài đặt hệ thống</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild className="cursor-pointer text-destructive focus:bg-destructive focus:text-destructive-foreground">
+                <Link href="/login">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Đăng xuất (Logout)</span>
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </header>
+  );
+}
 
 function StreakDisplay({ streakCount = 0 }: { streakCount?: number }) {
   const isZero = streakCount === 0;
   return (
-    <Card className="flex items-center justify-between p-6">
-      <div className="flex items-center gap-4">
-        {/* Box chứa Icon lửa */}
-        <div className={`p-3 rounded-xl transition-colors ${isZero ? 'bg-muted' : 'bg-amber-100 dark:bg-amber-500/20'}`}>
-          <Flame 
-            size={32} 
-            className={`${isZero ? 'text-muted-foreground opacity-50' : 'text-amber-500'} transition-all`} 
-          />
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-1">
-            Current Streak
-          </h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-black text-foreground">{streakCount}</span>
-            <span className="text-sm font-medium text-muted-foreground">ngày</span>
-          </div>
-        </div>
-      </div>
-      <div className="text-right hidden sm:block max-w-[200px]">
-        <p className="text-sm font-medium text-muted-foreground">
-          {isZero ? 'Hành trình ngàn dặm bắt đầu từ 1 bước chân!' : 'Bạn đang làm rất xuất sắc. Tiếp tục phát huy!'}
-        </p>
-      </div>
-    </Card>
+    <Badge
+      variant="outline"
+      className={`px-3 py-1.5 text-sm font-bold border-2 transition-colors flex items-center gap-1.5 ${isZero
+          ? 'text-muted-foreground border-muted-foreground/30 bg-muted/40'
+          : 'text-amber-600 border-amber-200 bg-amber-50 dark:text-amber-500 dark:border-amber-500/30 dark:bg-amber-500/10'
+        }`}
+    >
+      <Flame size={16} className={isZero ? 'opacity-50' : 'fill-amber-500'} />
+      Current Streak: {streakCount} {isZero && '🔥'}
+    </Badge>
   );
 }
 
-function StatsCard({ title, value, subValue, icon: Icon, colorClass }: {
+function StatsCard({ title, value, icon: Icon, subElement, colorClass = "text-sky-500" }: {
   title: string;
   value: string | number;
-  subValue?: React.ReactNode;
   icon: React.ElementType;
-  colorClass: string;
+  subElement?: React.ReactNode;
+  colorClass?: string;
 }) {
   return (
-    <Card className="flex flex-col p-5 border shadow-sm hover:shadow-md transition-shadow">
+    <Card className="flex flex-col p-5 border-border shadow-sm hover:shadow-md transition-all h-full bg-card">
       <div className="flex justify-between items-start mb-4">
-        <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+        <h3 className="text-[10px] md:text-xs font-black text-muted-foreground uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis">
           {title}
         </h3>
-        <Icon size={20} className={colorClass} />
+        <div className={`p-2 rounded-lg shrink-0 ml-2 bg-muted/50 ${colorClass}`}>
+          <Icon size={20} strokeWidth={2.5} />
+        </div>
       </div>
       <div className="mt-auto">
-        <span className="text-3xl font-bold text-foreground">{value}</span>
-        {subValue && (
-          <div className="mt-2 text-sm text-muted-foreground font-medium">
-            {subValue}
+        <span className="text-3xl font-black text-foreground block tracking-tight">
+          {value}
+        </span>
+        {subElement && (
+          <div className="mt-3">
+            {subElement}
           </div>
         )}
       </div>
@@ -122,52 +243,59 @@ function StatsCard({ title, value, subValue, icon: Icon, colorClass }: {
   );
 }
 
-function ContinueLearningCard({ lesson }: { lesson: any }) {
+function ContinueLearningCard({ lesson }: { lesson: LessonData | null }) {
   if (!lesson) {
     return (
-      <Card className="flex flex-col justify-center items-center p-8 text-center h-full border-dashed">
-        <BookOpen size={48} className="text-muted-foreground mb-4 opacity-50" />
-        <h3 className="text-lg font-bold text-foreground mb-2">Chưa có bài học nào</h3>
-        <p className="text-sm text-muted-foreground mb-6">Bạn chưa bắt đầu tiến trình học tập nào trên hệ thống.</p>
-        <Button asChild className="bg-sky-500 hover:bg-sky-600 font-bold rounded-full px-6">
-          <Link href="/courses">Bắt đầu học ngay</Link>
+      <Card className="flex flex-col justify-center items-center py-10 px-6 text-center h-full border-2 border-dashed shadow-none">
+        <div className="p-4 rounded-full bg-muted/50 mb-4">
+          <BookOpen strokeWidth={1.5} size={32} className="text-muted-foreground opacity-70" />
+        </div>
+        <h3 className="text-lg font-bold text-foreground mb-1">Hãy bắt đầu bài học đầu tiên!</h3>
+        <p className="text-sm font-medium text-muted-foreground mb-6 max-w-sm">
+          Tiến trình sẽ được cập nhật ở đây. Khám phá hàng ngàn từ vựng mới và ngữ pháp ngay.
+        </p>
+        <Button asChild className="bg-sky-500 hover:bg-sky-600 font-bold rounded-2xl px-6 shadow-md shadow-sky-500/20">
+          <Link href="/courses">Khám phá khoá học</Link>
         </Button>
       </Card>
     );
   }
 
-  const { title, progress = 0, totalItems = 10, completedItems = 0, id } = lesson;
-  const percentage = Math.round((completedItems / totalItems) * 100) || progress;
+  const percentage = Math.round((lesson.completedItems / (lesson.totalItems || 1)) * 100) || lesson.progress;
 
   return (
-    <Card className="flex flex-col h-full border-sky-500/20 shadow-sm relative overflow-hidden">
-      {/* Decoupled top gradient feeling */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-sky-500" />
-      
+    <Card className="flex flex-col h-full border-2 border-border shadow-sm relative overflow-hidden group hover:border-sky-300 dark:hover:border-sky-800 transition-colors">
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-sky-500 group-hover:bg-sky-400 transition-colors" />
+
       <CardHeader className="pb-4 mt-2">
-        <div className="flex justify-between items-start">
-          <Badge className="bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 shadow-none border-0 font-bold mb-3 uppercase tracking-wider text-[10px]">
-            Tiếp tục học
+        <div className="flex justify-between items-start mb-2">
+          <Badge className="bg-sky-100 text-sky-700 hover:bg-sky-200 dark:bg-sky-950/50 dark:text-sky-300 shadow-none border-0 font-bold uppercase tracking-widest text-[9px] px-2.5 py-0.5">
+            ĐANG HỌC DỞ DANG
           </Badge>
-          <Clock size={16} className="text-muted-foreground opacity-70" />
+          <Clock size={14} className="text-muted-foreground opacity-60" />
         </div>
-        <CardTitle className="text-xl font-bold line-clamp-2">{title}</CardTitle>
+        <CardTitle className="text-xl font-bold line-clamp-2 leading-tight">
+          {lesson.title}
+        </CardTitle>
       </CardHeader>
-      
-      <CardContent className="pb-4 flex-1">
-        <div className="space-y-3 mt-4">
-          <div className="flex justify-between text-sm font-semibold">
-            <span className="text-muted-foreground">Tiến độ hiện tại</span>
-            <span className="text-sky-600 dark:text-sky-400">{percentage}%</span>
+
+      <CardContent className="pb-5 flex-1 flex flex-col justify-center">
+        <div className="space-y-2 mt-2 w-full">
+          <div className="flex justify-between items-end mb-1">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tiến trình</span>
+            <span className="text-sm font-black text-sky-600 dark:text-sky-400">{percentage}%</span>
           </div>
-          <Progress value={percentage} className="h-2.5 bg-sky-100 dark:bg-sky-950 [&>div]:bg-sky-500" />
+          <Progress value={percentage} className="h-3 bg-sky-100 dark:bg-sky-950/50 [&>div]:bg-sky-500 shadow-inner" />
+          <p className="text-[11px] text-muted-foreground font-medium text-right mt-1">
+            Đã học {lesson.completedItems} / {lesson.totalItems} từ
+          </p>
         </div>
       </CardContent>
-      
+
       <CardFooter>
-        <Button className="w-full gap-2 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-xl" asChild>
-          <Link href={`/lessons/${id}`}>
-            Tiếp tục lộ trình <ArrowRight size={18} />
+        <Button className="w-full gap-2 bg-sky-500 hover:bg-sky-400 text-white font-black rounded-2xl h-12 shadow-[0_4px_0_0_#0284c7] hover:shadow-[0_2px_0_0_#0284c7] hover:translate-y-[2px] transition-all active:shadow-[0_0px_0_0_#0284c7] active:translate-y-[4px]" asChild>
+          <Link href={`/lessons/${lesson.id}`}>
+            <PlayCircle size={20} className="fill-white/20" /> Tiếp tục {percentage < 100 ? 'học' : 'ôn tập'}
           </Link>
         </Button>
       </CardFooter>
@@ -177,43 +305,52 @@ function ContinueLearningCard({ lesson }: { lesson: any }) {
 
 function SRSQuickCard({ dueCount = 0 }: { dueCount: number }) {
   const isZero = dueCount === 0;
-  
+
   return (
-    <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border-indigo-100 dark:border-indigo-900 overflow-hidden relative shadow-sm h-full flex flex-col">
+    <Card className="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-900/50 relative shadow-sm h-full flex flex-col group overflow-hidden">
+      {/* Decoupled top gradient feeling */}
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-500" />
+
       {/* Background Graphic */}
-      <div className="absolute -right-8 -top-8 text-indigo-500/10 dark:text-indigo-400/5">
-        <Brain size={140} />
+      <div className="absolute -right-6 -bottom-6 text-amber-500/10 dark:text-amber-500/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 pointer-events-none">
+        <Brain size={160} strokeWidth={1} />
       </div>
-      
-      <CardContent className="p-6 relative z-10 flex flex-col h-full mt-2">
+
+      <CardContent className="p-6 relative z-10 flex flex-col h-full mt-2 lg:justify-center">
         <div className="mb-4">
-          <Badge variant="outline" className="border-indigo-200 text-indigo-700 font-bold dark:border-indigo-700/50 dark:text-indigo-300 bg-white/60 dark:bg-black/20 uppercase tracking-widest text-[10px]">
-            Spaced Repetition
+          <Badge className="bg-amber-200/50 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 shadow-none border-0 font-bold uppercase tracking-widest text-[9px] px-2.5 py-0.5">
+            Spaced Repetition System
           </Badge>
         </div>
-        
-        <h3 className="text-2xl font-black text-foreground mb-2">Thẻ ôn tập hôm nay</h3>
-        <p className="text-sm font-medium text-muted-foreground mb-8 pr-12">
-          Thuật toán lặp lại ngắt quãng sẽ tự động tính toán từ vựng nào cần nhắc lại.
+
+        <h3 className="text-xl font-bold text-foreground mb-2">Đến hạn ôn tập</h3>
+        <p className="text-sm font-medium text-muted-foreground mb-6 pr-4">
+          Chỉ 5 phút ôn thẻ từ vựng mỗi ngày giúp bạn ghi nhớ cực lâu.
         </p>
-        
-        <div className="mt-auto flex items-end justify-between">
-          <div className="flex flex-col">
-            <span className={`text-5xl font-black ${isZero ? 'text-indigo-300 dark:text-indigo-800' : 'text-indigo-600 dark:text-indigo-400'}`}>
+
+        <div className="mt-auto flex flex-col items-center justify-center gap-4 py-2 border-t border-amber-500/10">
+          <div className="flex flex-col items-center text-center">
+            <span className={`text-6xl font-black ${isZero ? 'text-amber-300 dark:text-amber-800/40' : 'text-amber-500 dark:text-amber-400'}`}>
               {dueCount}
             </span>
-            <span className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground mt-1">từ cần ôn</span>
+            <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mt-1">thẻ cần review</span>
           </div>
-          
-          <Button 
-            variant={isZero ? "secondary" : "default"}
-            className={`${isZero ? 'bg-white/50 dark:bg-white/10' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20'} font-bold rounded-xl p-6`}
+
+          <Button
+            className={`w-full font-black rounded-2xl h-12 transition-all gap-2 ${isZero
+                ? 'bg-muted text-muted-foreground'
+                : 'bg-amber-500 hover:bg-amber-400 text-white shadow-[0_4px_0_0_#d97706] hover:shadow-[0_2px_0_0_#d97706] hover:translate-y-[2px] active:shadow-[0_0px_0_0_#d97706] active:translate-y-[4px]'
+              }`}
             disabled={isZero}
-            asChild
+            asChild={!isZero}
           >
-            <Link href="/srs/due">
-              {isZero ? "Đã ôn xong" : "Review Now"}
-            </Link>
+            {isZero ? (
+              <span>Tuyệt vời! Đã hoàn thành</span>
+            ) : (
+              <Link href="/srs/due">
+                REVIEW NGAY <ArrowRight strokeWidth={3} size={18} />
+              </Link>
+            )}
           </Button>
         </div>
       </CardContent>
@@ -221,21 +358,24 @@ function SRSQuickCard({ dueCount = 0 }: { dueCount: number }) {
   );
 }
 
-function RecentLessonCard({ item }: { item: any }) {
+function RecentLessonCard({ item }: { item: LessonData }) {
   return (
-    <Link href={`/lessons/${item.id}`} className="group block mb-2 last:mb-0">
-      <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-sky-50 dark:hover:bg-sky-950 transition-colors border border-transparent group-hover:border-sky-100 dark:group-hover:border-sky-900">
-        <div className="bg-sky-100 dark:bg-sky-900/50 p-2.5 rounded-lg text-sky-600 dark:text-sky-400">
-          <CheckCircle2 size={24} />
+    <Link href={`/lessons/${item.id}`} className="group block mb-3 last:mb-0">
+      <div className="flex items-center gap-4 bg-background p-4 rounded-2xl shadow-sm border border-border group-hover:border-sky-200 dark:group-hover:border-sky-800 transition-all">
+        <div className={`p-2.5 rounded-xl flex items-center justify-center ${item.status === 'COMPLETED' ? 'bg-green-100 text-green-600 dark:bg-green-950/50 dark:text-green-400' : 'bg-sky-50 text-sky-500 dark:bg-sky-950/40 dark:text-sky-400'
+          }`}>
+          {item.status === 'COMPLETED' ? <CheckCircle2 size={22} strokeWidth={2.5} /> : <BookOpen size={22} strokeWidth={2.5} />}
         </div>
-        <div className="flex-1 min-w-0">
+
+        <div className="flex-1 min-w-0 pr-2">
           <h4 className="text-sm font-bold text-foreground truncate">{item.title}</h4>
-          <p className="text-xs font-medium text-muted-foreground truncate mt-1">
-            Đã hoàn thành {item.completedAt ? new Date(item.completedAt).toLocaleDateString('vi-VN') : 'gần đây'}
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-1">
+            {item.status === 'COMPLETED' ? 'Đã học xong' : `Tiến độ: ${item.progress}%`}
           </p>
         </div>
-        <div className="w-8 h-8 rounded-full bg-background flex items-center justify-center border shadow-sm group-hover:bg-sky-500 group-hover:text-white transition-colors group-hover:border-sky-500">
-          <ArrowRight size={14} />
+
+        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center border-border border text-muted-foreground group-hover:bg-sky-500 group-hover:text-white transition-colors group-hover:border-sky-500">
+          <ArrowRight size={14} strokeWidth={2.5} />
         </div>
       </div>
     </Link>
@@ -243,201 +383,227 @@ function RecentLessonCard({ item }: { item: any }) {
 }
 
 // ==========================================
-// THÀNH PHẦN KHUNG XƯƠNG (LOADING STATE)
+// 4. SKELETON LOADER
 // ==========================================
 function DashboardSkeleton() {
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8 animate-pulse w-full">
-      <div className="flex items-center gap-5">
-        <Skeleton className="w-20 h-20 rounded-full" />
-        <div className="space-y-3">
-          <Skeleton className="h-8 w-64 rounded-md" />
-          <Skeleton className="h-4 w-40 rounded-md" />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950/50">
+      <header className="h-16 w-full border-b bg-background flex items-center px-4 md:px-8 mb-8">
+        <Skeleton className="h-8 w-32 rounded-lg" />
+        <Skeleton className="h-10 w-10 rounded-full ml-auto" />
+      </header>
+
+      <div className="max-w-6xl mx-auto px-4 md:px-8 space-y-8 animate-pulse pb-16">
+        <div className="flex items-center gap-6">
+          <Skeleton className="h-24 w-24 rounded-full" />
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-64 rounded-xl" />
+            <Skeleton className="h-6 w-32 rounded-lg" />
+          </div>
         </div>
-      </div>
-      <Skeleton className="h-32 w-full rounded-2xl" />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(k => <Skeleton key={k} className="h-32 rounded-xl" />)}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Skeleton className="h-[280px] rounded-2xl" />
-          <Skeleton className="h-[280px] rounded-2xl" />
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(k => <Skeleton key={k} className="h-32 rounded-2xl" />)}
         </div>
-        <Skeleton className="h-[280px] rounded-2xl col-span-1" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+          <div className="col-span-1 lg:col-span-2 space-y-6">
+            <Skeleton className="h-[280px] rounded-2xl" />
+            <div className="space-y-3">
+              <Skeleton className="h-20 w-full rounded-2xl" />
+              <Skeleton className="h-20 w-full rounded-2xl" />
+            </div>
+          </div>
+          <div className="col-span-1 lg:col-span-1">
+            <Skeleton className="h-[400px] rounded-2xl" />
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
 // ==========================================
-// CẤU TRÚC TRANG CHÍNH (ASYNC SERVER PAGE)
+// 5. SERVER PAGE CHÍNH 
 // ==========================================
 
 export default async function DashboardPage() {
-  // Thực thi lệnh parse dữ liệu tại Server để HTML render siêu tốc khi đẩy về client (Next 15 RSC)
   try {
+    // Gọi song song (Parallel Data Fetching) API endpoints
     const [userReq, statsReq, progressReq, srsReq] = await Promise.allSettled([
       serverFetch('/users/me'),
       serverFetch('/users/me/stats'),
-      serverFetch('/users/me/progress?limit=6'),
+      serverFetch('/users/me/progress?limit=5'), // Limit 5 như schema Notion yêu cầu
       serverFetch('/srs/stats')
     ]);
 
-    // Nếu endpoint `user` quan trọng nhất nổ, lật xuống catch render luôn màn hình cảnh báo lỗi
+    // Handle Auth Error -> Kích hoạt màn hình fallback bắt lỗi bên dưới Catch block
     if (userReq.status === 'rejected') {
-      throw new Error(userReq.reason.message || 'Phiên làm việc lỗi. Vui lòng xác thực lại!');
+      throw new Error(userReq.reason?.message || 'Phiên đăng nhập hết hạn hoặc Server không phản hồi!');
     }
 
-    const unwrap = (res: PromiseSettledResult<any>, fallback: any) => 
+    const unwrap = (res: PromiseSettledResult<any>, fallback: any) =>
       res.status === 'fulfilled' ? res.value : fallback;
 
-    const user = userReq.value;
-    const stats = unwrap(statsReq, {
+    // Phân rã dữ liệu an toàn
+    const user: UserData = userReq.value;
+
+    const stats: StatsData = unwrap(statsReq, {
+      totalLessonsStarted: 0,
       totalLessonsCompleted: 0,
       completionRate: 0,
       averageScore: 0,
-      totalWordsLearned: 0
+      totalWordsLearned: 0,
+      reviewCount: 0
     });
-    
-    // progress list: mảng bài học gần nhất.
-    const progressList = unwrap(progressReq, []);
-    
-    // số lượng thẻ nhớ due date
-    const srsStats = unwrap(srsReq, { dueToday: 0 });
 
-    const inProgressLesson = progressList.find((p: any) => p.status === 'IN_PROGRESS') || progressList[0];
-    const recentLessons = progressList.filter((p: any) => p.id !== (inProgressLesson?.id)).slice(0, 4);
+    const progressList: LessonData[] = unwrap(progressReq, []);
+    const srsStats: SRSData = unwrap(srsReq, { dueToday: 0 });
+
+    // Xác định bài học IN_PROGRESS đầu tiên để đưa lên Banner "Tiếp tục học"
+    const inProgressLesson = progressList.find(p => p.status === 'IN_PROGRESS') || progressList[0] || null;
+
+    // Các bài còn lại (có thể cho vào thẻ Recent)
+    const recentLessons = progressList.filter(p => p.id !== inProgressLesson?.id).slice(0, 4);
 
     return (
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 w-full space-y-8">
-        {/* === 1. Hero Section === */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-6">
-          <Avatar className="w-20 h-20 border-[3px] border-background shadow-md">
-            <AvatarImage src={user.avatarUrl} alt={`${user.firstName} ${user.lastName}`} />
-            <AvatarFallback className="text-2xl font-black bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300">
-              {user.firstName?.charAt(0) || ''}{user.lastName?.charAt(0) || ''}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-3 mb-1.5">
-              <h1 className="text-3xl font-black text-foreground tracking-tight">
-                Chào mừng, {user.firstName} {user.lastName}!
-              </h1>
-              {user.membershipType === 'PREMIUM' ? (
-                <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200 dark:bg-amber-500/20 dark:border-amber-500/30 px-3 py-1 font-bold">
-                  <Star size={13} className="mr-1.5 fill-amber-500 text-amber-500" /> Premium Plus
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="font-bold text-xs uppercase tracking-wide">
-                  Gói Free
-                </Badge>
-              )}
+      <div className="min-h-screen bg-[#F7F9F9] dark:bg-background">
+        {/* Navigation Bar */}
+        <DashboardHeader user={user} />
+
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 w-full space-y-10">
+
+          {/* === HERO SECTION === */}
+          <section className="flex flex-col md:flex-row items-start md:items-center gap-6 justify-between border-b pb-8 dark:border-border/60">
+            <div className="flex items-center gap-6">
+              <Avatar className="w-24 h-24 border-4 border-white dark:border-background shadow-lg shadow-sky-500/10">
+                <AvatarImage src={user.avatarUrl || ''} alt="User avatar" />
+                <AvatarFallback className="text-3xl font-black bg-gradient-to-br from-sky-400 to-sky-600 text-white">
+                  {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
+                    Chào mừng trở lại, {user.firstName}!
+                  </h1>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  {user.membershipType === 'PREMIUM' ? (
+                    <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white border-0 shadow-md shadow-amber-500/20 px-3 py-1 font-bold">
+                      <Star size={14} className="mr-1.5 fill-white" /> PREMIUM
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="font-bold text-xs uppercase tracking-widest px-3 py-1 text-muted-foreground border-border/60">
+                      FREE PLAN
+                    </Badge>
+                  )}
+                  {/* Streak Mocking Data */}
+                  <StreakDisplay streakCount={0} />
+                </div>
+              </div>
             </div>
-            <p className="text-base font-medium text-muted-foreground">
-              Sẵn sàng để chinh phục những đỉnh cao mới cùng từ vựng hôm nay chứ?
-            </p>
-          </div>
-        </div>
+          </section>
 
-        <div className="space-y-6">
-          {/* === 2. Khối hiển thị chuỗi kỷ lục (Mock 0) === */}
-          <StreakDisplay streakCount={0} />
+          {/* === STATS GRID === */}
+          <section>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+              <StatsCard
+                title="BÀI HỌC ĐÃ XONG"
+                value={stats.totalLessonsCompleted || 0}
+                icon={BookOpen}
+                colorClass="text-sky-500"
+              />
+              <StatsCard
+                title="TỶ LỆ HOÀN THÀNH"
+                value={`${(stats.completionRate || 0).toFixed(1)}%`}
+                icon={Trophy}
+                colorClass="text-green-500"
+                subElement={<Progress value={stats.completionRate || 0} className="h-2 bg-green-100 dark:bg-green-950/40 [&>div]:bg-green-500" />}
+              />
+              <StatsCard
+                title="ĐIỂM TRUNG BÌNH"
+                value={(stats.averageScore || 0).toFixed(1)}
+                icon={Star}
+                colorClass="text-amber-500"
+              />
+              <StatsCard
+                title="TỪ VỰNG GHI NHỚ"
+                value={stats.totalWordsLearned || 0}
+                icon={Zap}
+                colorClass="text-purple-500"
+              />
+            </div>
+          </section>
 
-          {/* === 3. Các Card Nhỏ Hiển Thị Thống Kê Tổng Quan === */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatsCard 
-              title="Bài học hoàn thành" 
-              value={stats.totalLessonsCompleted || 0}
-              icon={BookOpen}
-              colorClass="text-sky-500"
-            />
-            <StatsCard 
-              title="Tỷ lệ thuần thục (%)" 
-              value={`${(stats.completionRate || 0).toFixed(1)}`}
-              icon={Trophy}
-              colorClass="text-green-500"
-            />
-            <StatsCard 
-              title="Điểm số trung bình" 
-              value={(stats.averageScore || 0).toFixed(1)}
-              icon={Star}
-              colorClass="text-amber-500"
-            />
-            <StatsCard 
-              title="Từ vựng đã nắm bắt" 
-              value={stats.totalWordsLearned || 0}
-              icon={Zap}
-              colorClass="text-purple-500"
-            />
-          </div>
+          {/* === MAIN CONTENT (2/3 LEFT - 1/3 RIGHT) === */}
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-stretch pt-2">
 
-          {/* === 4. Widget Học Tập Chính (Chia layout lưới) === */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Vùng tương tác Left (2 Cột nhỏ) */}
-            <div className="lg:col-span-2 space-y-6 flex flex-col h-full">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+            {/* Lõi Cột Trái (2/3): Học Lại & Mới Học Xong */}
+            <div className="lg:col-span-2 flex flex-col gap-6">
+
+              {/* Highlight Thẻ bự - Tiếp tục lộ trình */}
+              <div className="w-full h-auto sm:h-64">
                 <ContinueLearningCard lesson={inProgressLesson} />
-                <SRSQuickCard dueCount={srsStats.dueToday || 0} />
+              </div>
+
+              {/* Danh sách List Horizontal Cũ */}
+              <div className="mt-4 shrink-0">
+                <div className="flex items-center justify-between mb-4 px-1">
+                  <h3 className="text-lg font-black text-foreground">Hoạt động gần đây</h3>
+                  <Button variant="link" className="text-sky-500 font-bold p-0 hidden sm:flex" asChild>
+                    <Link href="/history">Xem toàn bộ →</Link>
+                  </Button>
+                </div>
+
+                {recentLessons.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {recentLessons.map((item, idx) => (
+                      <RecentLessonCard key={item.id || idx} item={item} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 bg-background border rounded-2xl text-center flex flex-col items-center">
+                    <Clock size={32} className="text-muted-foreground opacity-30 mb-3" />
+                    <span className="text-sm font-medium text-muted-foreground w-64">Bạn chưa tham gia thêm lộ trình nào trong thời gian qua.</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Vùng tóm tắt tiến trình (Right) */}
-            <div className="lg:col-span-1 h-full">
-              <Card className="h-full flex flex-col shadow-sm border">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-bold">Lịch sử tiến độ</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 pb-4">
-                  {recentLessons.length > 0 ? (
-                    <div className="space-y-1">
-                      {recentLessons.map((lesson: any, i: number) => (
-                        <RecentLessonCard key={lesson.id || i} item={lesson} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-center h-[200px] text-muted-foreground">
-                      <Clock size={48} className="opacity-20 mb-4" />
-                      <p className="text-sm font-medium">Bạn chưa hoàn thành<br />bất kỳ bài học nào gần đây.</p>
-                    </div>
-                  )}
-                </CardContent>
-                {recentLessons.length > 0 && (
-                  <CardFooter className="pt-0 justify-center">
-                    <Button variant="ghost" size="sm" className="w-full text-muted-foreground text-xs font-bold tracking-wide" asChild>
-                      <Link href="/history">XEM TẤT CẢ LỊCH SỬ</Link>
-                    </Button>
-                  </CardFooter>
-                )}
-              </Card>
+            {/* Cột Phải (1/3): Cảnh Báo Hệ Thống Spaced Repetition */}
+            <div className="lg:col-span-1 h-[400px] lg:h-auto">
+              <SRSQuickCard dueCount={srsStats.dueToday || 0} />
             </div>
-            
-          </div>
-        </div>
+
+          </section>
+        </main>
       </div>
     );
-  } catch (error: any) {
+  } catch (err: any) {
     // === XỬ LÝ LỖI === 
-    // Giao diện sẽ rẽ nhánh về đây khi promise reject
+    // Khi gọi Token fail hoặc Server API 500, Next Component đổ dồn về Error State
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 flex flex-col items-center justify-center text-center min-h-[60vh]">
-        <div className="bg-destructive/10 p-6 rounded-full mb-6">
-          <AlertCircle size={56} className="text-destructive" />
-        </div>
-        <h2 className="text-3xl font-black text-foreground mb-3">Server Không Đáp Ứng</h2>
-        <p className="text-base text-muted-foreground font-medium mb-10 max-w-lg">
-          {error.message || 'Không thể thiết lập kết nối tới Backend Service. Hãy kiểm tra kết nối mạng hoặc thử xoá bộ nhớ đệm nếu bạn mới cấp quyền truy cập.'}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-          <Button variant="outline" className="font-bold h-12 px-8 rounded-xl" asChild>
-            <Link href="/login">Xác thực lại</Link>
-          </Button>
-          <Button className="font-bold h-12 px-8 rounded-xl bg-sky-500 hover:bg-sky-600 text-white" asChild>
-            <Link href="/dashboard">Thử tải lại Trang</Link>
-          </Button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <Card className="max-w-md w-full border-2 shadow-xl">
+          <CardHeader className="text-center pt-8 pb-4">
+            <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle size={40} className="text-destructive" />
+            </div>
+            <CardTitle className="text-2xl font-black">Xác thực thất bại</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center pb-8">
+            <p className="text-muted-foreground font-medium mb-8">
+              {err.message || 'Hệ thống mất kết nối lên máy chủ hoặc Token không tồn tại. Hãy chắc chắn rằng bạn đã chấp nhận Cookie bằng luồng đăng nhập mới.'}
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button asChild className="w-full font-bold h-12 rounded-xl text-md">
+                <Link href="/login">Đăng nhập tài khoản</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
