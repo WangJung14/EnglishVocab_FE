@@ -114,3 +114,57 @@ Sau đó, tôi thường vào bếp cẩn thận chuẩn bị bữa sáng cho gi
 Lúc 7:30 sáng, tôi bắt xe buýt đến trường. Các lớp học của tôi bắt đầu lúc 8:00 sáng và kết thúc chuẩn xác vào lúc 12:00 trưa. Tôi thực sự yêu thích lịch trình thói quen này của mình.`
   };
 };
+
+// ---------------------------------------------------------
+// EXPLORER (COURSES) MOCKS
+// ---------------------------------------------------------
+
+export interface CategoryData {
+  id: string;
+  name: string; // Tên thay cho title như API Response
+  slug: string;
+  description: string;
+  iconUrl: string; // Tên thay cho image
+  displayOrder: number;
+  createdAt: string;
+  active: boolean;
+}
+
+export interface TopicData {
+  id: string;
+  name: string; // Tên thay cho title
+  slug: string;
+  description: string;
+  level: string;
+  isPublished: boolean;
+  categoryName: string;
+}
+
+export interface LessonListData {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  lessonType: string;
+  isPublished: boolean;
+}
+
+export const getMockCategories = (): CategoryData[] => [
+  { id: 'cat-1', name: 'TOEIC Phá Đảo', slug: 'toeic', description: 'Ôn thi TOEIC format mới với lộ trình chuẩn', iconUrl: 'Folder', displayOrder: 1, createdAt: new Date().toISOString(), active: true },
+  { id: 'cat-2', name: 'IELTS Tinh Gọn', slug: 'ielts', description: 'Chinh phục IELTS 7.0+ cấp tốc', iconUrl: 'Book', displayOrder: 2, createdAt: new Date().toISOString(), active: true },
+  { id: 'cat-3', name: 'Phản Xạ Giao Tiếp', slug: 'giao-tiep', description: 'Hội thoại tiếng Anh thực chiến mỗi ngày', iconUrl: 'PlayCircle', displayOrder: 3, createdAt: new Date().toISOString(), active: true },
+];
+
+export const getMockTopics = (categorySlug: string): TopicData[] => [
+  { id: 'top-1', name: 'Part 1: Photographs', slug: 'part-1-photographs', description: 'Chiến thuật mô tả tranh chuẩn TOEIC', level: 'BEGINNER', isPublished: true, categoryName: 'TOEIC Phá Đảo' },
+  { id: 'top-2', name: 'Part 2: Question & Response', slug: 'part-2-qr', description: 'Kỹ năng nghe hiểu câu hỏi ngắn', level: 'INTERMEDIATE', isPublished: true, categoryName: 'TOEIC Phá Đảo' },
+  { id: 'top-3', name: 'Part 3: Conversations', slug: 'part-3-conv', description: 'Đoạn hội thoại đa chủ đề', level: 'ADVANCED', isPublished: true, categoryName: 'TOEIC Phá Đảo' }
+];
+
+export const getMockTopicLessons = (topicSlug: string): LessonListData[] => [
+  { id: 'mock-lesson-1', title: 'Lesson 1: Common Action Verbs', slug: 'mock-lesson-1', content: 'Từ vựng hành động phổ biến', lessonType: 'VOCABULARY', isPublished: true },
+  { id: 'mock-lesson-2', title: 'Lesson 2: Objects & Environment', slug: 'mock-lesson-2', content: 'Từ vựng đồ vật và môi trường', lessonType: 'VOCABULARY', isPublished: true },
+  { id: 'mock-lesson-3', title: 'Lesson 3: Prepositions of Place', slug: 'mock-lesson-3', content: 'Ngữ pháp chỉ vị trí và trạng thái', lessonType: 'GRAMMAR', isPublished: true },
+  { id: 'mock-lesson-4', title: 'Lesson 4: Practice Test', slug: 'mock-lesson-4', content: 'Bài kiểm tra tổng hợp', lessonType: 'PRACTICE', isPublished: true },
+];
+
