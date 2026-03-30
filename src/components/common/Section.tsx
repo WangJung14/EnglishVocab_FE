@@ -3,6 +3,7 @@ import { Container } from './Container';
 
 interface SectionProps {
   children: ReactNode;
+  id?: string;
   className?: string;
   title?: string;
   subtitle?: string;
@@ -10,12 +11,13 @@ interface SectionProps {
 
 export function Section({
   children,
+  id,
   className = '',
   title,
   subtitle,
 }: SectionProps) {
   return (
-    <section className={`py-12 md:py-20 ${className}`}>
+    <section id={id} className={`py-12 md:py-20 ${className}`}>
       <Container>
         {(title || subtitle) && (
           <div className="text-center mb-12 md:mb-16">
@@ -36,3 +38,4 @@ export function Section({
     </section>
   );
 }
+

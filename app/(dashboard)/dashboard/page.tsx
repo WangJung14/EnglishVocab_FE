@@ -1,6 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import BentoDashboard from './components/BentoDashboard';
+import ContinueLearningCard from './components/ContinueLearningCard';
 import {
   Flame,
   BookOpen,
@@ -11,7 +13,6 @@ import {
   Star,
   CheckCircle2,
   AlertCircle,
-  PlayCircle,
   Clock,
   User,
   Settings,
@@ -225,18 +226,19 @@ function StatsCard({ title, value, icon: Icon, subElement, colorClass = "text-sk
   subElement?: React.ReactNode;
   colorClass?: string;
 }) {
+  // Bỏ thẻ <Card> của shadcn vì BentoGrid (GSAP) đã phủ bọc border ngoài
   return (
-    <Card className="flex flex-col p-5 border-border shadow-sm hover:shadow-md transition-all h-full bg-card">
+    <div className="flex flex-col p-6 isolate z-10 w-full h-full relative group">
       <div className="flex justify-between items-start mb-4">
-        <h3 className="text-[10px] md:text-xs font-black text-muted-foreground uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis">
+        <h3 className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis group-hover:text-foreground transition-colors">
           {title}
         </h3>
-        <div className={`p-2 rounded-lg shrink-0 ml-2 bg-muted/50 ${colorClass}`}>
-          <Icon size={20} strokeWidth={2.5} />
+        <div className={`p-2 rounded-xl shrink-0 ml-2 bg-muted/80 dark:bg-muted/40 backdrop-blur-sm shadow-inner group-hover:scale-110 transition-transform ${colorClass}`}>
+          <Icon size={22} strokeWidth={2.5} />
         </div>
       </div>
       <div className="mt-auto">
-        <span className="text-3xl font-black text-foreground block tracking-tight">
+        <span className="text-3xl sm:text-4xl font-black text-foreground block tracking-tight">
           {value}
         </span>
         {subElement && (
@@ -245,105 +247,46 @@ function StatsCard({ title, value, icon: Icon, subElement, colorClass = "text-sk
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 }
 
-function ContinueLearningCard({ lesson }: { lesson: LessonData | null }) {
-  if (!lesson) {
-    return (
-      <Card className="flex flex-col justify-center items-center py-10 px-6 text-center h-full border-2 border-dashed shadow-none">
-        <div className="p-4 rounded-full bg-muted/50 mb-4">
-          <BookOpen strokeWidth={1.5} size={32} className="text-muted-foreground opacity-70" />
-        </div>
-        <h3 className="text-lg font-bold text-foreground mb-1">Hãy bắt đầu bài học đầu tiên!</h3>
-        <p className="text-sm font-medium text-muted-foreground mb-6 max-w-sm">
-          Tiến trình sẽ được cập nhật ở đây. Khám phá hàng ngàn từ vựng mới và ngữ pháp ngay.
-        </p>
-        <Button asChild className="bg-sky-500 hover:bg-sky-600 font-bold rounded-2xl px-6 shadow-md shadow-sky-500/20">
-          <Link href="/courses">Khám phá khoá học</Link>
-        </Button>
-      </Card>
-    );
-  }
 
-  const percentage = Math.round((lesson.completedItems / (lesson.totalItems || 1)) * 100) || lesson.progress;
-
-  return (
-    <Card className="flex flex-col h-full border-2 border-border shadow-sm relative overflow-hidden group hover:border-sky-300 dark:hover:border-sky-800 transition-colors">
-      <div className="absolute top-0 left-0 w-full h-1.5 bg-sky-500 group-hover:bg-sky-400 transition-colors" />
-
-      <CardHeader className="pb-4 mt-2">
-        <div className="flex justify-between items-start mb-2">
-          <Badge className="bg-sky-100 text-sky-700 hover:bg-sky-200 dark:bg-sky-950/50 dark:text-sky-300 shadow-none border-0 font-bold uppercase tracking-widest text-[9px] px-2.5 py-0.5">
-            ĐANG HỌC DỞ DANG
-          </Badge>
-          <Clock size={14} className="text-muted-foreground opacity-60" />
-        </div>
-        <CardTitle className="text-xl font-bold line-clamp-2 leading-tight">
-          {lesson.title}
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent className="pb-5 flex-1 flex flex-col justify-center">
-        <div className="space-y-2 mt-2 w-full">
-          <div className="flex justify-between items-end mb-1">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tiến trình</span>
-            <span className="text-sm font-black text-sky-600 dark:text-sky-400">{percentage}%</span>
-          </div>
-          <Progress value={percentage} className="h-3 bg-sky-100 dark:bg-sky-950/50 [&>div]:bg-sky-500 shadow-inner" />
-          <p className="text-[11px] text-muted-foreground font-medium text-right mt-1">
-            Đã học {lesson.completedItems} / {lesson.totalItems} từ
-          </p>
-        </div>
-      </CardContent>
-
-      <CardFooter>
-        <Button className="w-full gap-2 bg-sky-500 hover:bg-sky-400 text-white font-black rounded-2xl h-12 shadow-[0_4px_0_0_#0284c7] hover:shadow-[0_2px_0_0_#0284c7] hover:translate-y-[2px] transition-all active:shadow-[0_0px_0_0_#0284c7] active:translate-y-[4px]" asChild>
-          <Link href={`/lessons/${lesson.id}`}>
-            <PlayCircle size={20} className="fill-white/20" /> Tiếp tục {percentage < 100 ? 'học' : 'ôn tập'}
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-}
 
 function SRSQuickCard({ dueCount = 0 }: { dueCount: number }) {
   const isZero = dueCount === 0;
 
   return (
-    <Card className="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-900/50 relative shadow-sm h-full flex flex-col group overflow-hidden">
-      {/* Decoupled top gradient feeling */}
-      <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-500" />
+    <div className="relative isolate z-10 w-full h-full flex flex-col overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-400 to-amber-500 pointer-events-none" />
 
-      {/* Background Graphic */}
       <div className="absolute -right-6 -bottom-6 text-amber-500/10 dark:text-amber-500/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 pointer-events-none">
-        <Brain size={160} strokeWidth={1} />
+        <Brain size={180} strokeWidth={1} />
       </div>
 
-      <CardContent className="p-6 relative z-10 flex flex-col h-full mt-2 lg:justify-center">
-        <div className="mb-4">
-          <Badge className="bg-amber-200/50 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 shadow-none border-0 font-bold uppercase tracking-widest text-[9px] px-2.5 py-0.5">
-            Spaced Repetition System
-          </Badge>
+      <CardContent className="p-6 relative z-10 flex flex-col h-full mt-2 justify-between pointer-events-none">
+        <div>
+          <div className="mb-4">
+            <Badge className="bg-amber-200/50 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 shadow-none border-0 font-bold uppercase tracking-widest text-[9px] px-2.5 py-0.5">
+              Spaced Repetition System
+            </Badge>
+          </div>
+          <h3 className="text-xl sm:text-2xl font-black text-foreground mb-2 leading-tight">Đến hạn ôn tập</h3>
+          <p className="text-sm font-medium text-muted-foreground pr-4">
+            Chỉ 5 phút ôn thẻ mỗi ngày giúp bạn ghi nhớ lâu.
+          </p>
         </div>
 
-        <h3 className="text-xl font-bold text-foreground mb-2">Đến hạn ôn tập</h3>
-        <p className="text-sm font-medium text-muted-foreground mb-6 pr-4">
-          Chỉ 5 phút ôn thẻ từ vựng mỗi ngày giúp bạn ghi nhớ cực lâu.
-        </p>
-
-        <div className="mt-auto flex flex-col items-center justify-center gap-4 py-2 border-t border-amber-500/10">
+        <div className="mt-8 flex flex-col items-center justify-center gap-6 pt-4 border-t border-amber-500/20">
           <div className="flex flex-col items-center text-center">
-            <span className={`text-6xl font-black ${isZero ? 'text-amber-300 dark:text-amber-800/40' : 'text-amber-500 dark:text-amber-400'}`}>
+            <span className={`text-[80px] leading-none font-black ${isZero ? 'text-amber-300 dark:text-amber-800/40' : 'text-amber-500 dark:text-amber-400'} drop-shadow-sm`}>
               {dueCount}
             </span>
-            <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mt-1">thẻ cần review</span>
+            <span className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground mt-2">thẻ cần review</span>
           </div>
 
           <Button
-            className={`w-full font-black rounded-2xl h-12 transition-all gap-2 ${isZero
+            className={`w-full font-black rounded-2xl h-14 transition-all gap-2 pointer-events-auto cursor-pointer relative z-20 text-md ${isZero
               ? 'bg-muted text-muted-foreground'
               : 'bg-amber-500 hover:bg-amber-400 text-white shadow-[0_4px_0_0_#d97706] hover:shadow-[0_2px_0_0_#d97706] hover:translate-y-[2px] active:shadow-[0_0px_0_0_#d97706] active:translate-y-[4px]'
               }`}
@@ -354,13 +297,13 @@ function SRSQuickCard({ dueCount = 0 }: { dueCount: number }) {
               <span>Tuyệt vời! Đã hoàn thành</span>
             ) : (
               <Link href="/srs/due">
-                REVIEW NGAY <ArrowRight strokeWidth={3} size={18} />
+                REVIEW NGAY <ArrowRight strokeWidth={3} size={20} />
               </Link>
             )}
           </Button>
         </div>
       </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -465,11 +408,12 @@ export default async function DashboardPage() {
 
     const srsStats: SRSData = unwrap(srsReq, mockSrs);
 
-    // Xác định bài học IN_PROGRESS đầu tiên để đưa lên Banner "Tiếp tục học"
-    const inProgressLesson = progressList.find(p => p.status === 'IN_PROGRESS') || progressList[0] || null;
+    // Lấy danh sách các bài học (ưu tiên đang học) để đưa lên danh sách "Tiếp tục học"
+    const inProgressLessons = progressList.filter(p => p.status === 'IN_PROGRESS');
+    const displayLessons = inProgressLessons.length > 0 ? inProgressLessons : progressList.slice(0, 3);
 
     // Các bài còn lại (có thể cho vào thẻ Recent)
-    const recentLessons = progressList.filter(p => p.id !== inProgressLesson?.id).slice(0, 4);
+    const recentLessons = progressList.filter(p => !displayLessons.some(d => d.id === p.id)).slice(0, 4);
 
     return (
       <div className="min-h-screen bg-[#F7F9F9] dark:bg-background">
@@ -511,77 +455,68 @@ export default async function DashboardPage() {
             </div>
           </section>
 
-          {/* === STATS GRID === */}
-          <section>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-              <StatsCard
-                title="BÀI HỌC ĐÃ XONG"
-                value={stats.totalLessonsCompleted || 0}
-                icon={BookOpen}
-                colorClass="text-sky-500"
-              />
-              <StatsCard
-                title="TỶ LỆ HOÀN THÀNH"
-                value={`${(stats.completionRate || 0).toFixed(1)}%`}
-                icon={Trophy}
-                colorClass="text-green-500"
-                subElement={<Progress value={stats.completionRate || 0} className="h-2 bg-green-100 dark:bg-green-950/40 [&>div]:bg-green-500" />}
-              />
-              <StatsCard
-                title="ĐIỂM TRUNG BÌNH"
-                value={(stats.averageScore || 0).toFixed(1)}
-                icon={Star}
-                colorClass="text-amber-500"
-              />
-              <StatsCard
-                title="TỪ VỰNG GHI NHỚ"
-                value={stats.totalWordsLearned || 0}
-                icon={Zap}
-                colorClass="text-purple-500"
-              />
-            </div>
+          {/* === BENTO GSAP ANIMATION GRID LÕI === */}
+          <section className="pt-2">
+            <BentoDashboard items={[
+              {
+                id: 'stats-completed',
+                className: 'col-span-1 border-0 bg-white/60 dark:bg-card/60 backdrop-blur-md',
+                content: <StatsCard title="BÀI HỌC ĐÃ XONG" value={stats.totalLessonsCompleted || 0} icon={BookOpen} colorClass="text-sky-500" />
+              },
+              {
+                id: 'stats-rate',
+                className: 'col-span-1 border-0 bg-white/60 dark:bg-card/60 backdrop-blur-md',
+                content: <StatsCard title="TỶ LỆ HOÀN THÀNH" value={`${(stats.completionRate || 0).toFixed(1)}%`} icon={Trophy} colorClass="text-green-500" subElement={<Progress value={stats.completionRate || 0} className="h-2 bg-green-100 dark:bg-green-950/40 [&>div]:bg-green-500 shadow-inner" />} />
+              },
+              {
+                id: 'stats-score',
+                className: 'col-span-1 border-0 bg-white/60 dark:bg-card/60 backdrop-blur-md',
+                content: <StatsCard title="ĐIỂM TRUNG BÌNH" value={(stats.averageScore || 0).toFixed(1)} icon={Star} colorClass="text-amber-500" />
+              },
+              {
+                id: 'stats-words',
+                className: 'col-span-1 border-0 bg-white/60 dark:bg-card/60 backdrop-blur-md',
+                content: <StatsCard title="TỪ VỰNG GHI NHỚ" value={stats.totalWordsLearned || 0} icon={Zap} colorClass="text-purple-500" />
+              },
+              {
+                id: 'continue-card',
+                // Kéo dài ra chiếm 2 cột ngang, 2 cột dọc trên desktop
+                className: 'col-span-1 md:col-span-2 lg:col-span-3 lg:row-span-2 border-0 bg-white/60 dark:bg-card/60 backdrop-blur-md xl:h-[400px]',
+                content: <ContinueLearningCard lessons={displayLessons} />
+              },
+              {
+                id: 'srs-card',
+                // Tương tự, nằm dọc bên phải
+                color: 'rgba(251, 191, 36, 0.05)', // Một xíu màu vàng nền cho thẻ riêng này
+                className: 'col-span-1 md:col-span-2 lg:col-span-1 lg:row-span-2 border-0 bg-amber-50/60 dark:bg-amber-950/20 backdrop-blur-md xl:h-[400px]',
+                content: <SRSQuickCard dueCount={srsStats.dueToday || 0} />
+              }
+            ]} />
           </section>
 
-          {/* === MAIN CONTENT (2/3 LEFT - 1/3 RIGHT) === */}
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-stretch pt-2">
-
-            {/* Lõi Cột Trái (2/3): Học Lại & Mới Học Xong */}
-            <div className="lg:col-span-2 flex flex-col gap-6">
-
-              {/* Highlight Thẻ bự - Tiếp tục lộ trình */}
-              <div className="w-full h-auto sm:h-64">
-                <ContinueLearningCard lesson={inProgressLesson} />
-              </div>
-
-              {/* Danh sách List Horizontal Cũ */}
-              <div className="mt-4 shrink-0">
-                <div className="flex items-center justify-between mb-4 px-1">
-                  <h3 className="text-lg font-black text-foreground">Hoạt động gần đây</h3>
-                  <Button variant="link" className="text-sky-500 font-bold p-0 hidden sm:flex" asChild>
-                    <Link href="/history">Xem toàn bộ →</Link>
-                  </Button>
-                </div>
-
-                {recentLessons.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {recentLessons.map((item, idx) => (
-                      <RecentLessonCard key={item.id || idx} item={item} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-8 bg-background border rounded-2xl text-center flex flex-col items-center">
-                    <Clock size={32} className="text-muted-foreground opacity-30 mb-3" />
-                    <span className="text-sm font-medium text-muted-foreground w-64">Bạn chưa tham gia thêm lộ trình nào trong thời gian qua.</span>
-                  </div>
-                )}
-              </div>
+          {/* === RECENT LESSONS LƯU LƯỢNG LIST OUTSIDE === */}
+          <section className="pt-2">
+            <div className="flex items-center justify-between mb-6 px-1">
+              <h3 className="text-xl font-black text-foreground flex items-center gap-2">
+                Hoạt động gần đây
+              </h3>
+              <Button variant="link" className="text-sky-500 font-bold p-0 hidden sm:flex" asChild>
+                <Link href="/history">Xem toàn bộ lịch sử →</Link>
+              </Button>
             </div>
 
-            {/* Cột Phải (1/3): Cảnh Báo Hệ Thống Spaced Repetition */}
-            <div className="lg:col-span-1 h-[400px] lg:h-auto">
-              <SRSQuickCard dueCount={srsStats.dueToday || 0} />
-            </div>
-
+            {recentLessons.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {recentLessons.map((item, idx) => (
+                  <RecentLessonCard key={item.id || idx} item={item} />
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 bg-white/50 dark:bg-card/30 border border-dashed rounded-[20px] text-center flex flex-col items-center">
+                <Clock size={40} className="text-muted-foreground opacity-30 mb-4" />
+                <span className="text-sm font-medium text-muted-foreground">Bạn chưa tham gia thêm lộ trình nào trong thời gian qua.</span>
+              </div>
+            )}
           </section>
         </main>
       </div>
