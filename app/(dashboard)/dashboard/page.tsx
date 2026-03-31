@@ -145,7 +145,7 @@ function DashboardHeader({ user }: { user: UserData }) {
           <Link href="/courses" className="transition-colors hover:text-sky-500 pt-px">
             Khóa học (Courses)
           </Link>
-          <Link href="/flashcards" className="transition-colors hover:text-sky-500 pt-px">
+          <Link href="/srs" className="transition-colors hover:text-sky-500 pt-px">
             Thẻ ôn (Flashcards)
           </Link>
           <Link href="/exercises/mock-lesson-4" className="transition-colors hover:text-sky-500 pt-px flex items-center gap-1">
@@ -296,7 +296,7 @@ function SRSQuickCard({ dueCount = 0 }: { dueCount: number }) {
             {isZero ? (
               <span>Tuyệt vời! Đã hoàn thành</span>
             ) : (
-              <Link href="/srs/due">
+              <Link href="/srs">
                 REVIEW NGAY <ArrowRight strokeWidth={3} size={20} />
               </Link>
             )}

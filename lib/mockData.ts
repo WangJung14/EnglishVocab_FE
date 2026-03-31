@@ -271,3 +271,38 @@ export const getMockAttemptResult = (score: number, total: number): AttemptResul
   correctAnswers: score
 });
 
+
+// ---------------------------------------------------------
+// SRS / FLASHCARD MOCKS
+// ---------------------------------------------------------
+
+export const mockFlashcards = [
+  {
+    flashcardId: 'fc-1',
+    frontText: 'Procrastinate',
+    backText: 'Trì hoãn. To delay doing something that you should do, usually because you do not want to do it.',
+    example: 'I know I should visit the dentist, but I keep procrastinating.',
+    nextReviewDate: new Date().toISOString()
+  },
+  {
+    flashcardId: 'fc-2',
+    frontText: 'Ubiquitous',
+    backText: 'Phổ biến, có mặt khắp nơi. Seeming to be everywhere or in several places at the same time.',
+    example: 'Sugar is ubiquitous in the American diet.',
+    nextReviewDate: new Date().toISOString()
+  },
+  {
+    flashcardId: 'fc-3',
+    frontText: 'Resilient',
+    backText: 'Kiên cường, có khả năng phục hồi nhanh. Able to feel better quickly after something unpleasant such as shock, injury, etc. happens.',
+    example: 'The community was highly resilient and began rebuilding immediately after the disaster.',
+    nextReviewDate: new Date().toISOString()
+  },
+  {
+    flashcardId: 'fc-4',
+    frontText: 'Enthusiastic',
+    backText: 'Nhiệt tình. Feeling or showing a lot of excitement and interest about somebody/something.',
+    example: 'You don\'t sound very enthusiastic about the idea.',
+    nextReviewDate: new Date().toISOString()
+  }
+];
